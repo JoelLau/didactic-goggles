@@ -1,0 +1,7 @@
+services:
+  app:
+    image: alpine:latest
+
+  db:
+    image: alpine:latest
+
