@@ -1,7 +1,46 @@
 services:
-  app:
-    image: alpine:latest
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT}:5432"
+    networks:
+      - postgres_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$DB_USER -d $$DB_NAME"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  db:
-    image: alpine:latest
+  goose-migrations:
+    image: kukymbr/goose-docker:3.24.2
+    container_name: goose_migrations
+    env_file:
+      - .env
+    environment:
+      - GOOSE_DRIVER=postgres
+      - GOOSE_DBSTRING=host=postgres user=${DB_USER} password=${DB_PASS} dbname=${DB_NAME} port=${DB_PORT} sslmode=disable
+    volumes:
+      - ./internal/db/migrations/:/migrations
+    networks:
+      - postgres_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["up"]
 
+networks:
+  postgres_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
