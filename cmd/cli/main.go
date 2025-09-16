@@ -2,8 +2,18 @@ package main
 
 import (
 	"context"
+	dbgen "didactic-goggles/internal/db/gen"
+	"fmt"
 	"log/slog"
 	"os"
+
+	"github.com/jackc/pgx/v5"
+	// "github.com/jackc/pgx/v5/pgtype"
+)
+
+const (
+	ErrorCodeSuccess           = 0
+	ErrorCodeFailedToConnectDB = 0
 )
 
 // CLA takes in exactly 1 argument - the path to file for ingestion
@@ -13,11 +23,53 @@ func main() {
 	ctx := context.Background()
 	logger := NewLogger()
 
-	// set up pgx connection pool
 	// set up sqlc generated libraries
 	logger.InfoContext(ctx, "starting...",
 		slog.Any("args", os.Args),
 		slog.Any("envs", os.Environ()),
+	)
+
+	// TODO: make this singleton
+	dsn := Dsn()
+	conn, err := pgx.Connect(ctx, dsn)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to connect to database", slog.Any("error", err))
+
+		os.Exit(ErrorCodeFailedToConnectDB)
+		return
+	}
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			logger.ErrorContext(ctx, "error closing connection to database", slog.Any("error", err))
+			return
+		}
+	}()
+
+	// TODO: consider singleton
+	// TODO: consider connection pool
+	// TODO: move this to app layer
+	queries := dbgen.New(conn)
+	categories, err := queries.ListCategories(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to list categories", slog.Any("error", err))
+
+		return
+	}
+
+	logger.InfoContext(ctx, "fetched categories", slog.Any("categories", categories))
+	os.Exit(ErrorCodeSuccess)
+
+}
+
+func Dsn() string {
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASS")
+	databaseName := os.Getenv("DB_NAME")
+
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+		user, password, host, port, databaseName,
 	)
 }
 
