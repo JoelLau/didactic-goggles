@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	// "github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -29,30 +29,33 @@ func main() {
 		slog.Any("envs", os.Environ()),
 	)
 
-	// TODO: make this singleton
+	// TODO: refactor: singleton
 	dsn := Dsn()
-	conn, err := pgx.Connect(ctx, dsn)
+	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to connect to database", slog.Any("error", err))
 
 		os.Exit(ErrorCodeFailedToConnectDB)
 		return
 	}
-	defer func() {
-		if err := conn.Close(ctx); err != nil {
-			logger.ErrorContext(ctx, "error closing connection to database", slog.Any("error", err))
-			return
-		}
-	}()
+	defer pool.Close()
 
-	// TODO: consider singleton
-	// TODO: consider connection pool
+	// TODO: refactor: singleton
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to connect to database", slog.Any("error", err))
+
+		os.Exit(ErrorCodeFailedToConnectDB)
+		return
+	}
+
 	// TODO: move this to app layer
 	queries := dbgen.New(conn)
 	categories, err := queries.ListCategories(ctx)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to list categories", slog.Any("error", err))
 
+		os.Exit(ErrorCodeFailedToConnectDB)
 		return
 	}
 
