@@ -13,7 +13,7 @@ import (
 
 const (
 	ErrorCodeSuccess           = 0
-	ErrorCodeFailedToConnectDB = 0
+	ErrorCodeFailedToConnectDB = 1
 )
 
 // CLA takes in exactly 1 argument - the path to file for ingestion
