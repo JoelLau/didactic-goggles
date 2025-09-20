@@ -1,6 +1,6 @@
 # Didactic Goggles
 
-## Architecture
+## Structure
 
 ```plaintext
     ./cmd/cli/main.go               # initialization & entrypoint
@@ -10,3 +10,11 @@
             └─▶ ./internal/db/*     # persistence
             └─▶ ./internal/domain/* # business rules
 ```
+
+### Naming Conventions
+
+| Type             | Convention                                                        |
+| ---------------- | ----------------------------------------------------------------- |
+| Directories      | kebab-case                                                        |
+| Individual Files | snake_case                                                        |
+| Package Names    | lowercase, no separators (e.g. packagename ) - prefer single word |
