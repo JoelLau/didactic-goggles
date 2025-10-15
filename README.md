@@ -18,3 +18,4 @@
 | Directories      | kebab-case                                                        |
 | Individual Files | snake_case                                                        |
 | Package Names    | lowercase, no separators (e.g. packagename ) - prefer single word |
+| Test Files       | testdata/* (see https://pkg.go.dev/cmd/go#hdr-Test_packages)      |
