@@ -28,3 +28,7 @@ func (d *Decimal) UnmarshalCSV(b []byte) error {
 	d.Decimal = dec
 	return nil
 }
+
+func (d *Decimal) String() string {
+	return d.StringFixed(2)
+}

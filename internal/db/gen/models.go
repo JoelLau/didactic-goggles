@@ -5,8 +5,6 @@
 package dbgen
 
 import (
-	"time"
-
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -15,17 +13,17 @@ type Category struct {
 }
 
 type Credit struct {
-	ID               int64     `json:"id"`
-	Name             string    `json:"name"`
-	TransactedAt     time.Time `json:"transacted_at"`
-	AmountInMicrosgd int64     `json:"amount_in_microsgd"`
-	CreatedAt        time.Time `json:"created_at"`
+	ID               int64              `json:"id"`
+	Name             string             `json:"name"`
+	TransactedAt     pgtype.Timestamptz `json:"transacted_at"`
+	AmountInMicrosgd int64              `json:"amount_in_microsgd"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 }
 
 type Debit struct {
-	ID               int64       `json:"id"`
-	CreditID         int64       `json:"credit_id"`
-	Category         pgtype.Text `json:"category"`
-	AmountInMicrosgd int64       `json:"amount_in_microsgd"`
-	CreatedAt        **time.Time `json:"created_at"`
+	ID               int64              `json:"id"`
+	CreditID         int64              `json:"credit_id"`
+	Category         pgtype.Text        `json:"category"`
+	AmountInMicrosgd int64              `json:"amount_in_microsgd"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 }

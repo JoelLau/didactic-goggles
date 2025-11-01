@@ -1,16 +1,16 @@
 package config
 
 import (
+	"io"
 	"log/slog"
-	"os"
 )
 
-func NewSlogger() *slog.Logger {
+func NewSlogger(r io.Writer, debug bool) *slog.Logger {
 	return slog.New(
 		slog.NewTextHandler(
-			os.Stderr,
+			r,
 			&slog.HandlerOptions{
-				AddSource: true,
+				AddSource: debug,
 				Level:     slog.LevelDebug,
 			},
 		),

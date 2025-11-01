@@ -75,8 +75,8 @@ type DbsCreditCardStatementItem struct {
 	TransactionType        string              `csv:"Transaction Type"`         // e.g. "REFUND & CREDITS", "PURCHASE"
 	PaymentType            string              `csv:"Payment Type"`             // e.g. "CONTACTLESS", "Online/In-App Payment"
 	TransactionStatus      string              `csv:"Transaction Status"`       // e.g. "Settled"
-	DebitAmount            customtypes.Decimal `csv:"Debit Amount"`             // e.g. "Settled"
-	CreditAmount           customtypes.Decimal `csv:"Credit Amount"`            // e.g. "Settled"
+	DebitAmount            customtypes.Decimal `csv:"Debit Amount"`             // e.g. "2.5"
+	CreditAmount           customtypes.Decimal `csv:"Credit Amount"`            // e.g. "0.0"
 }
 
 func (a DbsCreditCardStatementItem) Equals(b DbsCreditCardStatementItem) bool {
@@ -104,11 +104,11 @@ func (a DbsCreditCardStatementItem) Equals(b DbsCreditCardStatementItem) bool {
 		return false
 	}
 
-	if a.DebitAmount.Equal(b.DebitAmount.Decimal) {
+	if !a.DebitAmount.Equal(b.DebitAmount.Decimal) {
 		return false
 	}
 
-	if a.CreditAmount.Equal(b.CreditAmount.Decimal) {
+	if !a.CreditAmount.Equal(b.CreditAmount.Decimal) {
 		return false
 	}
 

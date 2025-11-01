@@ -2,80 +2,82 @@ package main
 
 import (
 	"context"
-	dbgen "didactic-goggles/internal/db/gen"
+	"didactic-goggles/internal/commands"
+	"didactic-goggles/internal/config"
+	"didactic-goggles/internal/db"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
-
-	"github.com/jackc/pgx/v5/pgxpool"
-	// "github.com/jackc/pgx/v5/pgtype"
 )
 
-const (
-	ErrorCodeSuccess           = 0
-	ErrorCodeFailedToConnectDB = 1
-)
-
-// CLA takes in exactly 1 argument - the path to file for ingestion
+// wrap main command to facilitate end-to-end testing later
 
 //go:generate go run github.com/sqlc-dev/sqlc/cmd/sqlc generate -f ../../internal/db/sqlc.yml
 func main() {
-	ctx := context.Background()
-	logger := NewLogger()
-
-	// set up sqlc generated libraries
-	logger.InfoContext(ctx, "starting...",
-		slog.Any("args", os.Args),
-		slog.Any("envs", os.Environ()),
-	)
-
-	// TODO: refactor: singleton
-	dsn := Dsn()
-	pool, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to connect to database", slog.Any("error", err))
-
-		os.Exit(ErrorCodeFailedToConnectDB)
-		return
-	}
-	defer pool.Close()
-
-	// TODO: refactor: singleton
-	conn, err := pool.Acquire(ctx)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to connect to database", slog.Any("error", err))
-
-		os.Exit(ErrorCodeFailedToConnectDB)
-		return
+	app := App{
+		Environment:  config.Env(),
+		InputStream:  os.Stdin,
+		OutputStream: os.Stdout,
+		ErrorStream:  os.Stderr,
 	}
 
-	// TODO: move this to app layer
-	queries := dbgen.New(conn)
-	categories, err := queries.ListCategories(ctx)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to list categories", slog.Any("error", err))
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "panic: %+v\n", r)
+		}
+	}()
 
-		os.Exit(ErrorCodeFailedToConnectDB)
+	if err := app.Run(context.Background(), os.Args[1:]); err != nil {
+		slog.Error("error while running main", slog.Any("error", err))
 		return
 	}
-
-	logger.InfoContext(ctx, "fetched categories", slog.Any("categories", categories))
-	os.Exit(ErrorCodeSuccess)
-
 }
 
-func Dsn() string {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASS")
-	databaseName := os.Getenv("DB_NAME")
+type App struct {
+	Environment map[string]string
+
+	InputStream  io.Reader
+	OutputStream io.Writer
+	ErrorStream  io.Writer
+}
+
+func (app *App) Run(ctx context.Context, args []string) error {
+	logger := config.NewSlogger(app.ErrorStream, true)
+	logger.InfoContext(ctx, "running main command", slog.Any("args", args))
+
+	file, err := os.Open(args[0]) // TODO: find a better way to resolve file name
+	if err != nil {
+		return fmt.Errorf("error opening file at path '%s': %+v", args[0], err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.ErrorContext(ctx, "error closing file", slog.String("file path", args[0]), slog.Any("error", err))
+			return
+		}
+	}()
+
+	connectionPool, err := db.ConnectionPool(ctx, app.Dsn())
+	if err != nil {
+		return fmt.Errorf("error getting connection pool: %v", err)
+	}
+
+	cmd := commands.NewIngestDBSStatementCommand(connectionPool, logger)
+	if err := cmd.Run(ctx, args); err != nil {
+		return fmt.Errorf("error running ingest dbs command: %+v", err)
+	}
+
+	return nil
+}
+
+func (app *App) Dsn() string {
+	host := app.Environment["DB_HOST"]
+	port := app.Environment["DB_PORT"]
+	user := app.Environment["DB_USER"]
+	password := app.Environment["DB_PASS"]
+	databaseName := app.Environment["DB_NAME"]
 
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 		user, password, host, port, databaseName,
 	)
-}
-
-func NewLogger() *slog.Logger {
-	return slog.Default()
 }

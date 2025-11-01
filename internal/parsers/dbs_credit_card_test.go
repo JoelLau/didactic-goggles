@@ -26,6 +26,7 @@ func TestParseEmpty(t *testing.T) {
 func TestParseString(t *testing.T) {
 	// arrange
 	given := [][]string{
+		{"", "", "", "", "", "", ""},
 		{"Card Transaction Details For:", "DBS yuu Visa Card 1234-1234-1234-1234", "", "", "", "", "", ""},
 		{"Transactions as at:", "12 Sep 2025", "", "", "", "", ""},
 		{"", "", "", "", "", "", ""},
@@ -40,17 +41,16 @@ func TestParseString(t *testing.T) {
 	}
 
 	parser := parsers.NewDbsCreditCardParser()
+	want := []parsers.DbsCreditCardStatementItem{
+		{TransactionDate: newDbsDate(t, "22 Aug 2025"), TransactionPostingDate: newDbsDate(t, "23 Aug 2025"), TransactionDescription: "BOON LAY BI            SINGAPORE     SG", TransactionType: "PURCHASE", PaymentType: "Contactless", TransactionStatus: "Settled", DebitAmount: newDecimal(t, "2.3"), CreditAmount: newDecimal(t, "0")},
+		{TransactionDate: newDbsDate(t, "22 Aug 2025"), TransactionPostingDate: newDbsDate(t, "23 Aug 2025"), TransactionDescription: "FAVEPAY - HOMIES BAKER SINGAPORE     SG", TransactionType: "PURCHASE", PaymentType: "Online/In-App Payment", TransactionStatus: "Settled", DebitAmount: newDecimal(t, "1.75"), CreditAmount: newDecimal(t, "0")},
+		{TransactionDate: newDbsDate(t, "21 Aug 2025"), TransactionPostingDate: newDbsDate(t, "23 Aug 2025"), TransactionDescription: "MALAYSIA BOLEH - JURON SINGAPORE     SG", TransactionType: "PURCHASE", PaymentType: "Contactless", TransactionStatus: "Settled", DebitAmount: newDecimal(t, "2.5"), CreditAmount: newDecimal(t, "0")},
+		{TransactionDate: newDbsDate(t, "21 Aug 2025"), TransactionPostingDate: newDbsDate(t, "23 Aug 2025"), TransactionDescription: "MALAYSIA BOLEH - JURON SINGAPORE     SG", TransactionType: "PURCHASE", PaymentType: "Contactless", TransactionStatus: "Settled", DebitAmount: newDecimal(t, "3.5"), CreditAmount: newDecimal(t, "0")},
+	}
 
 	// act
 	got, err := parser.Parse(given)
 	require.NoError(t, err)
-
-	want := []parsers.DbsCreditCardStatementItem{
-		{TransactionDate: newDbsDate(t, "22 Aug 2025"), TransactionPostingDate: newDbsDate(t, "23 Aug 2025"), TransactionDescription: "BOON LAY BI            SINGAPORE     SG", TransactionType: "PURCHASE", PaymentType: "Contactless", TransactionStatus: "Settled", CreditAmount: newDecimal(t, "2.3")},
-		{TransactionDate: newDbsDate(t, "22 Aug 2025"), TransactionPostingDate: newDbsDate(t, "23 Aug 2025"), TransactionDescription: "FAVEPAY - HOMIES BAKER SINGAPORE     SG", TransactionType: "PURCHASE", PaymentType: "Online/In-App Payment", TransactionStatus: "Settled", CreditAmount: newDecimal(t, "1.75")},
-		{TransactionDate: newDbsDate(t, "21 Aug 2025"), TransactionPostingDate: newDbsDate(t, "23 Aug 2025"), TransactionDescription: "MALAYSIA BOLEH - JURON SINGAPORE     SG", TransactionType: "PURCHASE", PaymentType: "Contactless", TransactionStatus: "Settled", CreditAmount: newDecimal(t, "2.5")},
-		{TransactionDate: newDbsDate(t, "21 Aug 2025"), TransactionPostingDate: newDbsDate(t, "23 Aug 2025"), TransactionDescription: "MALAYSIA BOLEH - JURON SINGAPORE     SG", TransactionType: "PURCHASE", PaymentType: "Contactless", TransactionStatus: "Settled", CreditAmount: newDecimal(t, "3.5")},
-	}
 
 	// assert
 	require.Equalf(t, "DBS yuu Visa Card 1234-1234-1234-1234", got.CardTransactionDetailsFor, "'Transaction Details For' does not match")
